@@ -12,6 +12,10 @@ import java.util.Arrays;
 
 public class MainActivity extends AppCompatActivity implements BookListFragment.BookListFragmentInterface {
 
+    private final String LIST_FRAG_TAG = "book_list";
+    private final String PAGER_FRAG_TAG = "book_pager";
+    private final String DETAIL_FRAG_TAG = "book_detail";
+
     private ArrayList<String> books;
     private BookDetailsFragment bookDetailFragment;
 
@@ -31,33 +35,32 @@ public class MainActivity extends AppCompatActivity implements BookListFragment.
             numPane = 2;
         }
 
+        FragmentManager fm = getSupportFragmentManager();
+
         if( numPane == 1 ){
-            ViewPagerFragment viewPagerFragment = (ViewPagerFragment) getSupportFragmentManager().findFragmentByTag("book_pager");
+            ViewPagerFragment viewPagerFragment = (ViewPagerFragment) fm.findFragmentByTag(PAGER_FRAG_TAG);
             if( viewPagerFragment  == null ) {
                 viewPagerFragment = ViewPagerFragment.newInstance(books);
             }
 
-            FragmentManager fm = getSupportFragmentManager();
             fm.beginTransaction()
-                    .replace(R.id.bookListLayout, viewPagerFragment, "book_pager")
+                    .replace(R.id.bookListLayout, viewPagerFragment, PAGER_FRAG_TAG)
                     .commit();
         }else{
 
-            FragmentManager fm = getSupportFragmentManager();
-
-            BookListFragment bookListFragment = (BookListFragment) getSupportFragmentManager().findFragmentByTag("book_list");
+            BookListFragment bookListFragment = (BookListFragment) fm.findFragmentByTag(LIST_FRAG_TAG);
             if( bookListFragment  == null ) {
                 bookListFragment = BookListFragment.newInstance(books);
                 fm.beginTransaction()
-                        .replace(R.id.bookListLayout, bookListFragment, "book_list")
+                        .replace(R.id.bookListLayout, bookListFragment, LIST_FRAG_TAG)
                         .commit();
             }
 
-            bookDetailFragment = (BookDetailsFragment) getSupportFragmentManager().findFragmentByTag("book_detail");
+            bookDetailFragment = (BookDetailsFragment) fm.findFragmentByTag(DETAIL_FRAG_TAG);
             if( bookDetailFragment  == null ) {
                 bookDetailFragment = BookDetailsFragment.newInstance("");
                 fm.beginTransaction()
-                        .add(R.id.bookDetailLayout, bookDetailFragment, "book_detail")
+                        .add(R.id.bookDetailLayout, bookDetailFragment, DETAIL_FRAG_TAG)
                         .commit();
             }
         }
