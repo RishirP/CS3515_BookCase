@@ -1,0 +1,19 @@
+<resources>
+    <string name="app_name">Book Case</string>
+    <string-array name="book_names_array">
+        <item>Red</item>
+        <item>Blue</item>
+        <item>Green</item>
+        <item>White</item>
+        <item>Grey</item>
+        <item>Cyan</item>
+        <item>Magenta</item>
+        <item>Yellow</item>
+        <item>Lime</item>
+        <item>Maroon</item>
+        <item>Teal</item>
+    </string-array>
+
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+</resources>
