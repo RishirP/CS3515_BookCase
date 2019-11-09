@@ -4,6 +4,7 @@ package edu.temple.bookcase;
 import android.content.Context;
 import android.os.Bundle;
 
+import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -11,8 +12,6 @@ import androidx.recyclerview.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 
 import java.util.ArrayList;
 
@@ -24,27 +23,41 @@ public class BookListFragment extends Fragment implements BookListAdapter.OnItem
 
     private static final String ARG_PARAM_BOOK_NAME = "book_names";
 
-    private ArrayList<String> books;
+    private ArrayList<Book> books;
 
     private BookListFragmentInterface mActivity;
+
+    private RecyclerView bookRecyclerView;
+    private BookListAdapter bookAdapter;
 
     public BookListFragment() {
         // Required empty public constructor
     }
 
-    public static BookListFragment newInstance(ArrayList<String> book_names) {
+    public static BookListFragment newInstance(ArrayList<Book> book_names) {
         BookListFragment fragment = new BookListFragment();
         Bundle args = new Bundle();
-        args.putStringArrayList(ARG_PARAM_BOOK_NAME, book_names);
+        args.putParcelableArrayList(ARG_PARAM_BOOK_NAME, book_names);
         fragment.setArguments(args);
         return fragment;
+    }
+
+    public ArrayList<Book> getBooks(){
+        return books;
+    }
+
+    public void notifyDataChanged(){
+        if(bookRecyclerView != null){
+            bookRecyclerView.removeAllViews();
+            bookAdapter.notifyDataSetChanged();
+        }
     }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         if (getArguments() != null) {
-            this.books = getArguments().getStringArrayList(ARG_PARAM_BOOK_NAME);
+            this.books = getArguments().getParcelableArrayList(ARG_PARAM_BOOK_NAME);
         }
     }
 
@@ -54,10 +67,10 @@ public class BookListFragment extends Fragment implements BookListAdapter.OnItem
         // Inflate the layout for this fragment
         View v = inflater.inflate(R.layout.fragment_book_list, container, false);
 
-        RecyclerView bookRecyclerView = v.findViewById(R.id.bookRecyclerView);
+        bookRecyclerView = v.findViewById(R.id.bookRecyclerView);
         bookRecyclerView.setLayoutManager( new LinearLayoutManager((Context)mActivity));
 
-        BookListAdapter bookAdapter = new BookListAdapter(this.books);
+        bookAdapter = new BookListAdapter(this.books);
         bookAdapter.setOnItemClickListener(this);
         bookRecyclerView.setAdapter( bookAdapter );
 
@@ -65,7 +78,7 @@ public class BookListFragment extends Fragment implements BookListAdapter.OnItem
     }
 
     @Override
-    public void onAttach(Context context) {
+    public void onAttach(@NonNull Context context) {
         super.onAttach(context);
         if (context instanceof BookListFragmentInterface) {
             mActivity = (BookListFragmentInterface) context;

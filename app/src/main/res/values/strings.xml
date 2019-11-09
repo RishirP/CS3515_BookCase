@@ -1,15 +1,6 @@
 <resources>
     <string name="app_name">Book Case</string>
-    <string-array name="book_names_array">
-        <item>The Hitchhiker\'s Guide to the Galaxy</item>
-        <item>Eragon</item>
-        <item>A Walk in the Woods</item>
-        <item>A Tale of Two Cities</item>
-        <item>Ringworld</item>
-        <item>The Restaurant at the End of the Universe</item>
-        <item>Life, the Universe and Everything</item>
-        <item>So Long, and Thanks for All the Fish</item>
-        <item>American Gods</item>
-        <item>A Wizard Of Earthsea</item>
-    </string-array>
+    <string name="book_img_desc">Book Cover Image</string>
+    <string name="book_search_btn">Search</string>
+    <string name="book_search_edit_text">title, author, year published </string>
 </resources>

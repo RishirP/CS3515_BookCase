@@ -21,25 +21,36 @@ public class ViewPagerFragment extends Fragment {
 
     private static final String ARG_PARAM_BOOKS = "books";
 
-    private ArrayList<String> books;
+    private ArrayList<Book> books;
+    private PagerAdapter pagerAdapter;
 
     public ViewPagerFragment() {
         // Required empty public constructor
     }
 
-    public static ViewPagerFragment newInstance(ArrayList<String> books) {
+    public static ViewPagerFragment newInstance(ArrayList<Book> books) {
         ViewPagerFragment fragment = new ViewPagerFragment();
         Bundle args = new Bundle();
-        args.putStringArrayList(ARG_PARAM_BOOKS, books);
+        args.putParcelableArrayList(ARG_PARAM_BOOKS, books);
         fragment.setArguments(args);
         return fragment;
+    }
+
+    public ArrayList<Book> getBooks(){
+        return books;
+    }
+
+    public void notifyDataChanged(){
+        if( pagerAdapter != null ){
+            pagerAdapter.notifyDataSetChanged();
+        }
     }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         if (getArguments() != null) {
-            this.books = getArguments().getStringArrayList(ARG_PARAM_BOOKS);
+            this.books = getArguments().getParcelableArrayList(ARG_PARAM_BOOKS);
         }
     }
 
@@ -51,10 +62,9 @@ public class ViewPagerFragment extends Fragment {
         View v = inflater.inflate(R.layout.fragment_view_pager, container, false);
 
         ViewPager viewPager = v.findViewById(R.id.bookDetailViewPager);
-        PagerAdapter pagerAdapter = new ViewPagerAdapter(getChildFragmentManager(), this.books);
+        pagerAdapter = new ViewPagerAdapter(getChildFragmentManager(), this.books);
         viewPager.setAdapter( pagerAdapter );
 
         return v;
     }
-
 }

@@ -4,14 +4,15 @@ import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentStatePagerAdapter;
+import androidx.viewpager.widget.PagerAdapter;
 
 import java.util.ArrayList;
 
 public class ViewPagerAdapter extends FragmentStatePagerAdapter {
 
-    private ArrayList<String> books;
+    private ArrayList<Book> books;
 
-    public ViewPagerAdapter(FragmentManager fm, ArrayList<String> books ){
+    public ViewPagerAdapter(FragmentManager fm, ArrayList<Book> books ){
         super(fm);
         this.books = books;
     }
@@ -21,6 +22,12 @@ public class ViewPagerAdapter extends FragmentStatePagerAdapter {
     public Fragment getItem(int position) {
         return BookDetailsFragment.newInstance( this.books.get(position) );
     }
+
+    @Override
+    public int getItemPosition(@NonNull Object object) {
+        return PagerAdapter.POSITION_NONE;
+    }
+
 
     @Override
     public int getCount() {

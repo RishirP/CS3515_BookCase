@@ -16,7 +16,7 @@ public class BookListAdapter extends RecyclerView.Adapter<BookListAdapter.BookLi
         void onItemClick(int position);
     }
 
-    private ArrayList<String> data;
+    private ArrayList<Book> data;
     private OnItemClickListener clickListener;
 
     public static class BookListViewHolder extends RecyclerView.ViewHolder {
@@ -28,7 +28,7 @@ public class BookListAdapter extends RecyclerView.Adapter<BookListAdapter.BookLi
         }
     }
 
-    public BookListAdapter(ArrayList<String> data){
+    public BookListAdapter(ArrayList<Book> data){
         this.data = data;
     }
 
@@ -47,7 +47,7 @@ public class BookListAdapter extends RecyclerView.Adapter<BookListAdapter.BookLi
 
     @Override
     public void onBindViewHolder(@NonNull BookListViewHolder holder, final int position) {
-        holder.textView.setText( data.get(position) );
+        holder.textView.setText( data.get(position).getTitle() );
         holder.textView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
