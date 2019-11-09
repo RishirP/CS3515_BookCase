@@ -87,9 +87,6 @@ public class MainActivity extends AppCompatActivity implements
 
     private void loadViewPagerFragment(FragmentManager fm){
         if( viewPagerFragment  == null ) {
-            if( ! booksLoaded ){
-                queryBooks("");
-            }
             viewPagerFragment = ViewPagerFragment.newInstance(books);
         }
 
@@ -100,9 +97,6 @@ public class MainActivity extends AppCompatActivity implements
 
     private void loadBookListFragment(FragmentManager fm){
         if( bookListFragment  == null ) {
-            if( ! booksLoaded ){
-                queryBooks("");
-            }
             bookListFragment = BookListFragment.newInstance(books);
             fm.beginTransaction()
                     .replace(R.id.bookListLayout, bookListFragment, LIST_FRAG_TAG)
@@ -121,6 +115,12 @@ public class MainActivity extends AppCompatActivity implements
 
     //load books from fragments
     private void loadBooks(){
+
+        if( !booksLoaded ){
+            queryBooks("");
+            return;
+        }
+
         if(viewPagerFragment != null){
             books = viewPagerFragment.getBooks();
         }else if(bookListFragment != null){
@@ -199,7 +199,6 @@ public class MainActivity extends AppCompatActivity implements
         }
 
         return false;
-
     }
 
     //update fragments as necessary
