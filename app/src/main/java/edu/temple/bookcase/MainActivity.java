@@ -213,9 +213,9 @@ public class MainActivity extends AppCompatActivity implements
 
         if(bookDetailFragment != null){
 
-            int id = bookDetailFragment.getBookId();
-            if( id != Book.EMPTY ){
-                if(bookInList(id)){
+            Book book = bookDetailFragment.getBook();
+            if( book != null ){
+                if(bookInList(book.getId())){
                     return;
                 }
                 bookDetailFragment.clearBook();

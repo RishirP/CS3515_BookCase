@@ -40,13 +40,8 @@ public class BookDetailsFragment extends Fragment {
         return fragment;
     }
 
-    public int getBookId(){
-
-        if( book != null ){
-            return book.getId();
-        }
-
-        return Book.EMPTY;
+    public Book getBook(){
+        return book;
     }
 
     @Override
