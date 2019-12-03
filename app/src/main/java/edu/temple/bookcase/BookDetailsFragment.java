@@ -1,14 +1,17 @@
 package edu.temple.bookcase;
 
 
+import android.content.Context;
 import android.os.Bundle;
 
+import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 
 import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -27,6 +30,9 @@ public class BookDetailsFragment extends Fragment {
     private TextView bookAuthorTextView;
     private TextView bookPublishedTextView;
     private ImageView bookCoverImageView;
+    private Button bookPlayButton;
+
+    private BookDetailsFragmentInterface mActivity;
 
     public BookDetailsFragment() {
         // Required empty public constructor
@@ -62,19 +68,47 @@ public class BookDetailsFragment extends Fragment {
         bookAuthorTextView = v.findViewById(R.id.bookAuthorTextView);
         bookPublishedTextView = v.findViewById(R.id.bookPublishedTextView);
         bookCoverImageView = v.findViewById(R.id.bookImageView);
+        bookPlayButton = v.findViewById(R.id.bookPlayButton);
+
+        bookPlayButton.setVisibility(View.INVISIBLE);
 
         if( book != null ) {
+            bookPlayButton.setVisibility(View.VISIBLE);
             bookTitleTextView.setText(book.getTitle());
             bookAuthorTextView.setText(book.getAuthor());
             bookPublishedTextView.setText(String.valueOf(book.getPublished()));
             Picasso.get().load(book.getCoverUrl()).into(bookCoverImageView);
         }
 
-        bookTitleTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP,28);
-        bookAuthorTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP,18);
-        bookPublishedTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP,18);
+        bookTitleTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP,22);
+        bookAuthorTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP,14);
+        bookPublishedTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP,14);
+
+        bookPlayButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mActivity.onPlayClicked( book );
+            }
+        });
 
         return v;
+    }
+
+    @Override
+    public void onAttach(@NonNull Context context) {
+        super.onAttach(context);
+        if (context instanceof BookDetailsFragmentInterface) {
+            mActivity = (BookDetailsFragmentInterface) context;
+        } else {
+            throw new RuntimeException(context.toString()
+                    + " must implement BookListFragmentInterface");
+        }
+    }
+
+    @Override
+    public void onDetach() {
+        super.onDetach();
+        mActivity = null;
     }
 
     public void displayBook(Book book){
@@ -95,6 +129,10 @@ public class BookDetailsFragment extends Fragment {
 
         if( bookCoverImageView != null ){
             Picasso.get().load(book.getCoverUrl()).into(bookCoverImageView);
+        }
+
+        if( bookPlayButton != null ){
+            bookPlayButton.setVisibility(View.VISIBLE);
         }
 
         Bundle args = this.getArguments();
@@ -125,11 +163,20 @@ public class BookDetailsFragment extends Fragment {
             bookCoverImageView.setImageResource(0);
         }
 
+        if( bookPlayButton != null ){
+            bookPlayButton.setVisibility(View.INVISIBLE);
+        }
+
         Bundle args = this.getArguments();
         if( args != null ){
             args.remove(ARG_PARAM_BOOK);
             this.setArguments(args);
         }
+    }
+
+    public interface BookDetailsFragmentInterface {
+
+        void onPlayClicked(Book book);
     }
 
 }

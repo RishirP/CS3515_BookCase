@@ -17,6 +17,7 @@ public class Book implements Parcelable{
     private String author;
     private int published;
     private String coverUrl;
+    private int duration;
 
     public static final Parcelable.Creator<Book> CREATOR = new Parcelable.Creator<Book>() {
         public Book createFromParcel(Parcel in) {
@@ -28,12 +29,13 @@ public class Book implements Parcelable{
         }
     };
 
-    public Book(int id, String title, String author, int published, String coverUrl){
+    public Book(int id, String title, String author, int published, String coverUrl, int duration){
         this.id = id;
         this.title = title;
         this.author = author;
         this.published = published;
         this.coverUrl = coverUrl;
+        this.duration = duration;
     }
 
     public Book(JSONObject args) throws JSONException {
@@ -42,6 +44,7 @@ public class Book implements Parcelable{
         this.author = args.getString("author");
         this.published = args.getInt("published");
         this.coverUrl = args.getString("cover_url");
+        this.duration = args.getInt("duration");
     }
 
     // Parcelable implementation
@@ -99,5 +102,7 @@ public class Book implements Parcelable{
     public String getCoverUrl(){
         return coverUrl;
     }
+
+    public int getDuration(){ return duration; }
 
 }

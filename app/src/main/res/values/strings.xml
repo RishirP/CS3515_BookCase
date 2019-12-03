@@ -2,5 +2,8 @@
     <string name="app_name">Book Case</string>
     <string name="book_img_desc">Book Cover Image</string>
     <string name="book_search_btn">Search</string>
+    <string name="book_play_btn">Start Audiobook</string>
+    <string name="book_pause_btn">Pause</string>
+    <string name="book_stop_btn">Stop</string>
     <string name="book_search_edit_text">title, author, year published </string>
 </resources>
