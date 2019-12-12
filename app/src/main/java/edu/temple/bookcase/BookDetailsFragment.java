@@ -7,15 +7,19 @@ import android.os.Bundle;
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 
+import android.os.Environment;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.squareup.picasso.Picasso;
+
+import java.io.File;
 
 
 /**
@@ -31,6 +35,8 @@ public class BookDetailsFragment extends Fragment {
     private TextView bookPublishedTextView;
     private ImageView bookCoverImageView;
     private Button bookPlayButton;
+    private ImageButton downloadButton;
+    private ImageButton deleteButton;
 
     private BookDetailsFragmentInterface mActivity;
 
@@ -69,8 +75,12 @@ public class BookDetailsFragment extends Fragment {
         bookPublishedTextView = v.findViewById(R.id.bookPublishedTextView);
         bookCoverImageView = v.findViewById(R.id.bookImageView);
         bookPlayButton = v.findViewById(R.id.bookPlayButton);
+        downloadButton = v.findViewById(R.id.bookDownloadButton);
+        deleteButton = v.findViewById(R.id.bookDeleteButton);
 
         bookPlayButton.setVisibility(View.INVISIBLE);
+        downloadButton.setVisibility(View.INVISIBLE);
+        deleteButton.setVisibility(View.INVISIBLE);
 
         if( book != null ) {
             bookPlayButton.setVisibility(View.VISIBLE);
@@ -78,18 +88,16 @@ public class BookDetailsFragment extends Fragment {
             bookAuthorTextView.setText(book.getAuthor());
             bookPublishedTextView.setText(String.valueOf(book.getPublished()));
             Picasso.get().load(book.getCoverUrl()).into(bookCoverImageView);
+            updateButtons();
         }
 
         bookTitleTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP,22);
         bookAuthorTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP,14);
         bookPublishedTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP,14);
 
-        bookPlayButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                mActivity.onPlayClicked( book );
-            }
-        });
+        bookPlayButton.setOnClickListener(v1 -> mActivity.onPlayClicked( book ));
+        downloadButton.setOnClickListener(v1 -> mActivity.onDownloadClicked( book, BookDetailsFragment.this ));
+        deleteButton.setOnClickListener(v1 -> mActivity.onDeleteClicked( book, BookDetailsFragment.this ));
 
         return v;
     }
@@ -135,6 +143,8 @@ public class BookDetailsFragment extends Fragment {
             bookPlayButton.setVisibility(View.VISIBLE);
         }
 
+        updateButtons();
+
         Bundle args = this.getArguments();
         if( args == null ){
             args = new Bundle();
@@ -167,6 +177,14 @@ public class BookDetailsFragment extends Fragment {
             bookPlayButton.setVisibility(View.INVISIBLE);
         }
 
+        if( downloadButton != null && deleteButton != null ){
+            downloadButton.setVisibility(View.INVISIBLE);
+        }
+
+        if( downloadButton != null && deleteButton != null ){
+            deleteButton.setVisibility(View.INVISIBLE);
+        }
+
         Bundle args = this.getArguments();
         if( args != null ){
             args.remove(ARG_PARAM_BOOK);
@@ -174,9 +192,31 @@ public class BookDetailsFragment extends Fragment {
         }
     }
 
+    public void storageChanged(){
+        updateButtons();
+    }
+
+    private void updateButtons(){
+        if( book != null && deleteButton != null && downloadButton != null ) {
+            downloadButton.setVisibility(View.INVISIBLE);
+            deleteButton.setVisibility(View.INVISIBLE);
+
+            File file = new File(((Context) mActivity).getExternalFilesDir(Environment.DIRECTORY_AUDIOBOOKS), book.getFilename());
+            if (file.exists()) {
+                deleteButton.setVisibility(View.VISIBLE);
+            } else {
+                downloadButton.setVisibility(View.VISIBLE);
+            }
+        }
+    }
+
     public interface BookDetailsFragmentInterface {
 
         void onPlayClicked(Book book);
+
+        void onDownloadClicked(Book book, BookDetailsFragment frag);
+
+        void onDeleteClicked(Book book, BookDetailsFragment frag);
     }
 
 }

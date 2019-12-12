@@ -23,7 +23,7 @@ public class BookListFragment extends Fragment implements BookListAdapter.OnItem
 
     private static final String ARG_PARAM_BOOK_NAME = "book_names";
 
-    private ArrayList<Book> books;
+    private Library library;
 
     private BookListFragmentInterface mActivity;
 
@@ -34,16 +34,16 @@ public class BookListFragment extends Fragment implements BookListAdapter.OnItem
         // Required empty public constructor
     }
 
-    public static BookListFragment newInstance(ArrayList<Book> book_names) {
+    public static BookListFragment newInstance(Library library) {
         BookListFragment fragment = new BookListFragment();
         Bundle args = new Bundle();
-        args.putParcelableArrayList(ARG_PARAM_BOOK_NAME, book_names);
+        args.putParcelable(ARG_PARAM_BOOK_NAME, library);
         fragment.setArguments(args);
         return fragment;
     }
 
-    public ArrayList<Book> getBooks(){
-        return books;
+    public Library getBooks(){
+        return library;
     }
 
     public void notifyDataChanged(){
@@ -57,7 +57,7 @@ public class BookListFragment extends Fragment implements BookListAdapter.OnItem
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         if (getArguments() != null) {
-            this.books = getArguments().getParcelableArrayList(ARG_PARAM_BOOK_NAME);
+            this.library = getArguments().getParcelable(ARG_PARAM_BOOK_NAME);
         }
     }
 
@@ -70,7 +70,7 @@ public class BookListFragment extends Fragment implements BookListAdapter.OnItem
         bookRecyclerView = v.findViewById(R.id.bookRecyclerView);
         bookRecyclerView.setLayoutManager( new LinearLayoutManager((Context)mActivity));
 
-        bookAdapter = new BookListAdapter(this.books);
+        bookAdapter = new BookListAdapter(library.getBooks());
         bookAdapter.setOnItemClickListener(this);
         bookRecyclerView.setAdapter( bookAdapter );
 

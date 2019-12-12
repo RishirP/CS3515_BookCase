@@ -5,5 +5,7 @@
     <string name="book_play_btn">Start Audiobook</string>
     <string name="book_pause_btn">Pause</string>
     <string name="book_stop_btn">Stop</string>
+    <string name="book_download_btn">Download</string>
+    <string name="book_delete_btn">Delete</string>
     <string name="book_search_edit_text">title, author, year published </string>
 </resources>

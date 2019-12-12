@@ -7,11 +7,14 @@ import androidx.fragment.app.FragmentManager;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
+import android.util.Log;
 import android.util.TypedValue;
 import android.view.View;
 import android.widget.EditText;
@@ -22,6 +25,11 @@ import android.widget.Toast;
 import org.json.JSONArray;
 import org.json.JSONException;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -32,24 +40,34 @@ import edu.temple.audiobookplayer.AudiobookService;
 
 public class MainActivity extends AppCompatActivity implements
         BookListFragment.BookListFragmentInterface, BookDetailsFragment.BookDetailsFragmentInterface,
-        QueryBooksTask.QueryBooksTaskInterface{
+        QueryBooksTask.QueryBooksTaskInterface, DownloadBookTask.DownloadBookTaskInterface{
 
     private final String LIST_FRAG_TAG = "book_list";
     private final String PAGER_FRAG_TAG = "book_pager";
     private final String DETAIL_FRAG_TAG = "book_detail";
     private final String BOOKS_LOADED_KEY = "books_loaded";
+    private final String LIBRARY_KEY = "books_library";
+    private final String SEARCHED_BOOKS_FILENAME = "books.dat";
+    private final String SEARCH_STRING_KEY = "search_string";
     private final String AUDIOBOOK_KEY = "audiobook_playing";
+    private final String AUDIOBOOK_DOWNLOAD_STATUS_KEY = "audiobook_download_status";
     private final String BOOK_API_URL = "https://kamorris.com/lab/audlib/booksearch.php";
+    private final String BOOK_DOWNLOAD_API_URL = "https://kamorris.com/lab/audlib/download.php";
     private final String BOOK_SEARCH_PARAM = "search";
 
-    private ArrayList<Book> books = new ArrayList<Book>();
+    private Library library;
     private BookDetailsFragment bookDetailFragment;
     private ViewPagerFragment viewPagerFragment;
     private BookListFragment bookListFragment;
     private EditText bookSearchEditText;
     private TextView nowPlayingTextView;
     private SeekBar bookSeekBar;
+    private Intent serviceIntent;
+    private String lastSearch;
+    private BookDetailsFragment actionDetailFragment;
 
+    //keeps track of current download status
+    private boolean downloading = false;
 
     //keeps track of book api query results
     private boolean booksLoaded = false;
@@ -64,8 +82,9 @@ public class MainActivity extends AppCompatActivity implements
         public void handleMessage(Message mssg){
             AudiobookService.BookProgress bookProgress = (AudiobookService.BookProgress) mssg.obj;
             if( bookProgress != null ) {
-                int percent = (int)((bookProgress.getProgress() / (audioBook.getDuration() + 0.0)) * 100.0);
-                bookSeekBar.setProgress( percent );
+                double percent = ((bookProgress.getProgress() / (audioBook.getDuration() + 0.0)) * 100.0);
+                bookSeekBar.setProgress( (int)percent );
+                audioBook.setProgress( bookProgress.getProgress() );
             }
         }
     };
@@ -94,7 +113,17 @@ public class MainActivity extends AppCompatActivity implements
         if( savedInstanceState != null ) {
             booksLoaded = savedInstanceState.getBoolean(BOOKS_LOADED_KEY);
             audioBook = savedInstanceState.getParcelable(AUDIOBOOK_KEY);
+            downloading = savedInstanceState.getBoolean(AUDIOBOOK_DOWNLOAD_STATUS_KEY);
+            library = savedInstanceState.getParcelable(LIBRARY_KEY);
+            lastSearch = savedInstanceState.getString(SEARCH_STRING_KEY);
+        }else{
+            retrieveLibrary();
+            retrieveSavedPreferences();
+            loadBooks();
         }
+
+        serviceIntent = new Intent(MainActivity.this, AudiobookService.class);
+        bindService( serviceIntent, audiobookConnection, BIND_AUTO_CREATE);
 
         bookSearchEditText = findViewById(R.id.bookSearchEditText);
         bookSeekBar = findViewById(R.id.bookSeekBar);
@@ -103,7 +132,7 @@ public class MainActivity extends AppCompatActivity implements
         nowPlayingTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP,13);
         nowPlayingTextView.setTextAlignment(TextView.TEXT_ALIGNMENT_CENTER);
 
-        bindService(new Intent(MainActivity.this, AudiobookService.class), audiobookConnection, BIND_AUTO_CREATE);
+        bookSearchEditText.setText(lastSearch);
 
         int numPane = 1;
 
@@ -118,8 +147,6 @@ public class MainActivity extends AppCompatActivity implements
         bookListFragment = (BookListFragment) fm.findFragmentByTag(LIST_FRAG_TAG);
         bookDetailFragment = (BookDetailsFragment) fm.findFragmentByTag(DETAIL_FRAG_TAG);
 
-        loadBooks();
-
         if( numPane == 1 ){
 
             loadViewPagerFragment(fm);
@@ -130,8 +157,8 @@ public class MainActivity extends AppCompatActivity implements
         }
 
         findViewById(R.id.bookSearchButton).setOnClickListener(v1 -> queryBooks( bookSearchEditText.getText().toString() ));
-        findViewById(R.id.bookPauseButton).setOnClickListener(v1 -> audiobookInterface.pause() );
-        findViewById(R.id.bookStopButton).setOnClickListener(v1 -> {audiobookInterface.stop(); audioBook = null;} );
+        findViewById(R.id.bookPauseButton).setOnClickListener(v1 -> pauseBook() );
+        findViewById(R.id.bookStopButton).setOnClickListener(v1 -> stopBook() );
         bookSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
@@ -150,10 +177,54 @@ public class MainActivity extends AppCompatActivity implements
     }
 
     @Override
+    protected void onDestroy(){
+        super.onDestroy();
+        unbindService(audiobookConnection);
+        saveLibrary();
+        savePreferences();
+        savePreferences();
+    }
+
+    @Override
     public void onSaveInstanceState(@NonNull Bundle outState){
         super.onSaveInstanceState(outState);
         outState.putBoolean(BOOKS_LOADED_KEY, booksLoaded);
         outState.putParcelable(AUDIOBOOK_KEY, audioBook);
+        outState.putBoolean(AUDIOBOOK_DOWNLOAD_STATUS_KEY, downloading);
+        outState.putParcelable(LIBRARY_KEY, library);
+        outState.putString(SEARCH_STRING_KEY,lastSearch);
+    }
+
+    private void pauseBook(){
+        if( audioBook != null ) {
+            Log.d("audiobook", "paused at " + audioBook.getProgress() + " seconds");
+        }
+        audiobookInterface.pause();
+    }
+
+    private void playBook(Book book){
+        if( audiobookInterface != null ){
+            audioBook = book;
+            startService(serviceIntent);
+            File file = getAudioBookFile( book.getFilename() );
+            if( file.exists() ){
+                Log.d("audiobook","playing from file");
+                int resume = Math.max(book.getProgress() - 10,0);
+                Log.d("audiobook","playing from " + resume + " seconds");
+                audiobookInterface.play( file, resume );
+            }else{
+                audiobookInterface.play( book.getId() );
+            }
+
+            setPlayingBook();
+        }
+    }
+
+    private void stopBook(){
+        audiobookInterface.stop();
+        stopService(serviceIntent);
+        audioBook.setProgress( 0 );
+        audioBook = null;
     }
 
     private void setPlayingBook(){
@@ -164,7 +235,7 @@ public class MainActivity extends AppCompatActivity implements
 
     private void loadViewPagerFragment(FragmentManager fm){
         if( viewPagerFragment  == null ) {
-            viewPagerFragment = ViewPagerFragment.newInstance(books);
+            viewPagerFragment = ViewPagerFragment.newInstance(library);
         }
 
         fm.beginTransaction()
@@ -174,7 +245,7 @@ public class MainActivity extends AppCompatActivity implements
 
     private void loadBookListFragment(FragmentManager fm){
         if( bookListFragment  == null ) {
-            bookListFragment = BookListFragment.newInstance(books);
+            bookListFragment = BookListFragment.newInstance(library);
             fm.beginTransaction()
                     .replace(R.id.bookListLayout, bookListFragment, LIST_FRAG_TAG)
                     .commit();
@@ -193,20 +264,16 @@ public class MainActivity extends AppCompatActivity implements
     //load books from fragments
     private void loadBooks(){
 
-        if( !booksLoaded ){
+        if( !booksLoaded && lastSearch.equals("") ){
             queryBooks("");
             return;
-        }
-
-        if(viewPagerFragment != null){
-            books = viewPagerFragment.getBooks();
-        }else if(bookListFragment != null){
-            books = bookListFragment.getBooks();
         }
     }
 
     //query books api
     private void queryBooks(String search) {
+
+        lastSearch = search;
 
         try {
             new QueryBooksTask(MainActivity.this).execute( makeQueryUrl(search) );
@@ -228,6 +295,21 @@ public class MainActivity extends AppCompatActivity implements
         return result;
     }
 
+    //query download api and save resulting audio data
+    private void downloadBook(Book book){
+        try {
+            Log.d("audiobook","Starting download");
+            downloading = true;
+            new DownloadBookTask(MainActivity.this).execute(
+                    makeDownloadUrl(book)
+                    , getExternalFilesDir(Environment.DIRECTORY_AUDIOBOOKS).getAbsolutePath()
+                    , book.getFilename() );
+        } catch (Exception e) {
+            downloading = false;
+            e.printStackTrace();
+        }
+    }
+
     //make search query
     private String makeQueryUrl(String search) throws UnsupportedEncodingException {
         String url = BOOK_API_URL;
@@ -235,6 +317,14 @@ public class MainActivity extends AppCompatActivity implements
         if( ! (search.trim()).isEmpty() ){
             url += "?" + BOOK_SEARCH_PARAM + "=" + urlEncode(search);
         }
+
+        return url;
+    }
+
+    private String makeDownloadUrl(Book book) throws UnsupportedEncodingException {
+        String url = BOOK_DOWNLOAD_API_URL;
+
+        url += "?id=" + book.getId();
 
         return url;
     }
@@ -251,11 +341,11 @@ public class MainActivity extends AppCompatActivity implements
             return;
         }
 
-        books.clear();
-        Book book;
+        library.clear();
+
         for(int i=0; i < result.length(); i++){
             try {
-                books.add( new Book(result.getJSONObject(i)) );
+                library.addBook( new Book(result.getJSONObject(i)) );
             } catch (JSONException e) {
                 e.printStackTrace();
             }
@@ -269,6 +359,7 @@ public class MainActivity extends AppCompatActivity implements
     private Boolean containsError(JSONArray result){
 
         try {
+            Log.d("downloadTask","starting download");
             if( result != null && result.length() > 0 && result.getJSONObject(0).has("error") ){
                 return true;
             }
@@ -293,7 +384,7 @@ public class MainActivity extends AppCompatActivity implements
 
             Book book = bookDetailFragment.getBook();
             if( book != null ){
-                if(bookInList(book.getId())){
+                if( library.getBookWithId(book.getId()) != null ){
                     return;
                 }
                 bookDetailFragment.clearBook();
@@ -301,32 +392,92 @@ public class MainActivity extends AppCompatActivity implements
         }
     }
 
-    //check if a book is present in the book array list
-    private boolean bookInList(int id){
-        for(int i = 0; i < books.size(); i++ ){
-            if( id == books.get(i).getId() ){
-                return true;
-            }
-        }
+    private File getAudioBookFile(String filename){
+        return new File(getExternalFilesDir(Environment.DIRECTORY_AUDIOBOOKS), filename);
+    }
 
-        return false;
+    private void saveLibrary(){
+        File file = new File(getFilesDir(),SEARCHED_BOOKS_FILENAME);
+        try {
+            FileOutputStream fos = new FileOutputStream(file);
+            ObjectOutputStream oos = new ObjectOutputStream( fos );
+            oos.writeObject( library.getBooks() );
+            oos.flush();
+            oos.close();
+            fos.close();
+
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+    }
+
+    private void retrieveLibrary(){
+        File file = new File(getFilesDir(),SEARCHED_BOOKS_FILENAME);
+        ArrayList<Book> books = new ArrayList<>();
+
+        try {
+
+            if( file.exists() ) {
+                FileInputStream fis = new FileInputStream(file);
+                ObjectInputStream ois = new ObjectInputStream(fis);
+
+                books = (ArrayList<Book>) ois.readObject();
+                ois.close();
+                fis.close();
+
+                library = new Library(books);
+            }else{
+                library = new Library();
+            }
+
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+    }
+
+    private void savePreferences(){
+        SharedPreferences.Editor editor = getPreferences(MODE_PRIVATE).edit();
+        editor.putString(SEARCH_STRING_KEY, lastSearch);
+        editor.commit();
+    }
+
+    private void retrieveSavedPreferences(){
+        SharedPreferences prefs = getPreferences(MODE_PRIVATE);
+        lastSearch = prefs.getString(SEARCH_STRING_KEY, "");
     }
 
     @Override
     public void onBookClicked(int index) {
 
         if( bookDetailFragment != null ){
-            bookDetailFragment.displayBook( books.get(index) );
+            bookDetailFragment.displayBook( library.getBookAt(index) );
         }
 
     }
 
     @Override
     public void onPlayClicked(Book book){
-        if( audiobookInterface != null ){
-            audioBook = book;
-            audiobookInterface.play( book.getId() );
-            setPlayingBook();
+        playBook(book);
+    }
+
+    @Override
+    public void onDownloadClicked(Book book, BookDetailsFragment frag) {
+        if( downloading ){
+            Toast.makeText( this, "An audio book is already being downloaded.", Toast.LENGTH_SHORT).show();
+        }else{
+            actionDetailFragment = frag;
+            downloadBook(book);
+        }
+    }
+
+    @Override
+    public void onDeleteClicked(Book book, BookDetailsFragment frag) {
+        File file = getAudioBookFile(book.getFilename());
+
+        if( file.delete() ){
+            frag.storageChanged();
+        }else{
+            Toast.makeText( this, "could not delete audiobook", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -334,5 +485,16 @@ public class MainActivity extends AppCompatActivity implements
     public void onQueryBooksTaskComplete(JSONArray result) {
 
         makeBooks(result);
+    }
+
+    @Override
+    public void onDownloadBookTaskComplete(String result) {
+
+        downloading = false;
+        if( actionDetailFragment != null ) {
+            actionDetailFragment.storageChanged();
+            actionDetailFragment = null;
+        }
+        Toast.makeText( this, result, Toast.LENGTH_SHORT).show();
     }
 }

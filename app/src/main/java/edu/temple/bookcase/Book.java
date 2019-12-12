@@ -8,7 +8,9 @@ import androidx.annotation.NonNull;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-public class Book implements Parcelable{
+import java.io.Serializable;
+
+public class Book implements Parcelable, Serializable {
 
     public static final int  EMPTY = -1;
 
@@ -18,12 +20,16 @@ public class Book implements Parcelable{
     private int published;
     private String coverUrl;
     private int duration;
+    private String filename;
+    private int progress;
 
     public static final Parcelable.Creator<Book> CREATOR = new Parcelable.Creator<Book>() {
+        @Override
         public Book createFromParcel(Parcel in) {
             return new Book(in);
         }
 
+        @Override
         public Book[] newArray(int size) {
             return new Book[size];
         }
@@ -36,6 +42,8 @@ public class Book implements Parcelable{
         this.published = published;
         this.coverUrl = coverUrl;
         this.duration = duration;
+        this.progress = 0;
+        makeFilename();
     }
 
     public Book(JSONObject args) throws JSONException {
@@ -45,6 +53,8 @@ public class Book implements Parcelable{
         this.published = args.getInt("published");
         this.coverUrl = args.getString("cover_url");
         this.duration = args.getInt("duration");
+        this.progress = 0;
+        makeFilename();
     }
 
     // Parcelable implementation
@@ -54,6 +64,9 @@ public class Book implements Parcelable{
         this.author = in.readString();
         this.published = in.readInt();
         this.coverUrl = in.readString();
+        this.duration = in.readInt();
+        this.filename = in.readString();
+        this.progress = in.readInt();
     }
 
     @Override
@@ -68,6 +81,9 @@ public class Book implements Parcelable{
         dest.writeString(this.author);
         dest.writeInt(this.published);
         dest.writeString(this.coverUrl);
+        dest.writeInt(duration);
+        dest.writeString(filename);
+        dest.writeInt(progress);
     }
 
     @NonNull
@@ -79,7 +95,14 @@ public class Book implements Parcelable{
                 ", author='" + author + '\'' +
                 ", published='" + published + '\'' +
                 ", coverUrl='" + coverUrl + '\'' +
+                ", duration='" + duration + '\'' +
+                ", filename='" + filename + '\'' +
+                ", progress='" + progress + '\'' +
                 '}';
+    }
+
+    private void makeFilename(){
+        filename = title.replaceAll("\\s+","_").toLowerCase() + ".mp3";
     }
 
     // Getters
@@ -104,5 +127,12 @@ public class Book implements Parcelable{
     }
 
     public int getDuration(){ return duration; }
+
+    public String getFilename(){ return filename; }
+
+    public int getProgress(){ return progress; }
+
+    //Setter
+    public void setProgress(int progress){ this.progress = progress; }
 
 }
